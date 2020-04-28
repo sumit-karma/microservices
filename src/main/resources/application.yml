@@ -32,7 +32,7 @@ logging:
         SQL: debug
 
 
-
+check-user-scopes: false
 
 
 
