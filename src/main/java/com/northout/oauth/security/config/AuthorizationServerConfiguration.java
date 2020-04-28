@@ -6,7 +6,9 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.config.annotation.configurers.ClientDetailsServiceConfigurer;
+import org.springframework.security.oauth2.config.annotation.web.configuration.AuthorizationServerConfigurer;
 import org.springframework.security.oauth2.config.annotation.web.configuration.AuthorizationServerConfigurerAdapter;
 import org.springframework.security.oauth2.config.annotation.web.configuration.EnableAuthorizationServer;
 import org.springframework.security.oauth2.config.annotation.web.configurers.AuthorizationServerEndpointsConfigurer;
@@ -16,28 +18,33 @@ import org.springframework.security.oauth2.provider.token.store.JwtAccessTokenCo
 import org.springframework.security.oauth2.provider.token.store.JwtTokenStore;
 import org.springframework.security.oauth2.provider.token.store.KeyStoreKeyFactory;
 
+import javax.sql.DataSource;
+
 @Configuration
 @EnableAuthorizationServer
-public class AuthorizationServerConfiguration extends AuthorizationServerConfigurerAdapter {
+public class AuthorizationServerConfiguration implements AuthorizationServerConfigurer {
     @Autowired
     private AuthenticationManager authenticationManager;
 
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    DataSource dataSource;
+
+    /**
+     * By default check_token is not accessible for all user,so to allow it for authenticated user, we need to override this.
+     * @param security
+     * @throws Exception
+     */
+    @Override
+    public void configure(AuthorizationServerSecurityConfigurer security) throws Exception {
+        security.tokenKeyAccess("permitAll").checkTokenAccess("isAuthenticated()");
+    }
+
     @Override
     public void configure(ClientDetailsServiceConfigurer clients) throws Exception {
-        clients.inMemory()
-                .withClient("northoutappclientid")
-                .authorizedGrantTypes("password","authorization_code")
-                .secret(encoder().encode("secret"))
-                .scopes("user_info","read","write")
-                .redirectUris("https://localhost:8787/myapp/login/oauth2/code/northout")
-                .autoApprove(false)
-                .and()
-                .withClient("microclient")
-                .authorizedGrantTypes("password","authorization_code","client_credentials")
-                .secret(encoder().encode("secret"))
-                .scopes("user_info")
-                .redirectUris("https://localhost:8787/myapp/login/oauth2/code/northout")
-                .autoApprove(false);
+        clients.jdbc(dataSource).passwordEncoder(passwordEncoder);
     }
 
     @Override
@@ -47,6 +54,15 @@ public class AuthorizationServerConfiguration extends AuthorizationServerConfigu
                 .accessTokenConverter(accessTokenConverter());
     }
 
+//
+//
+//    @Override
+//    public void configure(AuthorizationServerEndpointsConfigurer endpoints) throws Exception {
+//        endpoints.authenticationManager(authenticationManager)
+//                .tokenStore(tokenStore())
+//                .accessTokenConverter(accessTokenConverter());
+//    }
+//
     @Bean
     public JwtAccessTokenConverter accessTokenConverter() {
         final JwtAccessTokenConverter converter = new JwtAccessTokenConverter();
@@ -56,24 +72,24 @@ public class AuthorizationServerConfiguration extends AuthorizationServerConfigu
         converter.setKeyPair(keyStoreKeyFactory.getKeyPair("tomcat"));
         return converter;
     }
-
+//
     @Bean
     public TokenStore tokenStore() {
         return new JwtTokenStore(accessTokenConverter());
     }
 
     /**
-     * By default /check_token is not accessible for all user,so to allow it for authenticated user, we need to override this.
-     * @param security
-     * @throws Exception
-     */
-    @Override
-    public void configure(AuthorizationServerSecurityConfigurer security) throws Exception {
-        security.tokenKeyAccess("permitAll").checkTokenAccess("isAuthenticated()");
-    }
-
-    @Bean
-    public BCryptPasswordEncoder encoder() {
-        return new BCryptPasswordEncoder();
-    }
+//     * By default /check_token is not accessible for all user,so to allow it for authenticated user, we need to override this.
+//     * @param security
+//     * @throws Exception
+//     */
+//    @Override
+//    public void configure(AuthorizationServerSecurityConfigurer security) throws Exception {
+//        security.tokenKeyAccess("permitAll").checkTokenAccess("isAuthenticated()");
+//    }
+//
+//    @Bean
+//    public BCryptPasswordEncoder encoder() {
+//        return new BCryptPasswordEncoder();
+//    }
 }

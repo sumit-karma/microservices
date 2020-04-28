@@ -7,3 +7,32 @@ server:
         path: /auth
 
 
+spring:
+  main:
+    banner-mode: off
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/authserver_db
+    username: root
+    password: sumit
+  jpa:
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQL5InnoDBDialect
+        show-sql: true
+        format-sql: true
+    hibernate:
+      ddl-auto : update
+    show-sql: true
+
+logging:
+  level:
+    org:
+      hibernate:
+        SQL: debug
+
+
+
+
+
+
